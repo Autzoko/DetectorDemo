@@ -60,10 +60,17 @@ if [ ! -f "$MODEL_DIR/model_best.ckpt" ]; then
     echo ""
     echo "Downloading model files..."
     mkdir -p "$MODEL_DIR"
-    GDRIVE_ID="1tyrooafGsEBBanttL-Sxjs5YePWxrcTm"
-    gdown "$GDRIVE_ID" -O "$SCRIPT_DIR/models/model_files.zip"
-    unzip -o "$SCRIPT_DIR/models/model_files.zip" -d "$MODEL_DIR"
-    rm -f "$SCRIPT_DIR/models/model_files.zip"
+    GDRIVE_URL="https://drive.google.com/uc?id=1tyrooafGsEBBanttL-Sxjs5YePWxrcTm"
+    TMP_ZIP="$SCRIPT_DIR/models/_model_files.zip"
+    gdown "$GDRIVE_URL" -O "$TMP_ZIP"
+    # Unzip to temp dir, then move files to MODEL_DIR (handles nested dirs)
+    TMP_UNZIP="$SCRIPT_DIR/models/_tmp_unzip"
+    mkdir -p "$TMP_UNZIP"
+    unzip -o "$TMP_ZIP" -d "$TMP_UNZIP"
+    # Find and move model files (config.yaml, *.pkl, *.ckpt)
+    find "$TMP_UNZIP" -type f \( -name "*.yaml" -o -name "*.pkl" -o -name "*.ckpt" \) \
+        -exec mv {} "$MODEL_DIR/" \;
+    rm -rf "$TMP_ZIP" "$TMP_UNZIP"
     echo "Model files extracted to: $MODEL_DIR"
 else
     echo ""

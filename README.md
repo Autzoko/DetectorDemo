@@ -6,7 +6,7 @@
 
 ```bash
 bash setup.sh
-conda activate nndet
+conda activate detdemo
 ```
 
 ## Quick Start

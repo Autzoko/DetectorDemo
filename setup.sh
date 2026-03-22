@@ -18,7 +18,7 @@ echo "  nnDetection Inference: Environment Setup"
 echo "============================================"
 
 # ---- Step 1: Create conda env ----
-ENV_NAME="nndet"
+ENV_NAME="detdemo"
 
 if conda env list | grep -q "^${ENV_NAME} "; then
     echo "Conda env '$ENV_NAME' already exists."
@@ -70,4 +70,4 @@ echo "  3. Run:"
 echo "     conda activate $ENV_NAME"
 echo "     cd $SCRIPT_DIR"
 echo "     python predict.py --test_data /path/to/nii_files   # inference"
-echo "     python postprocess.py --mode density_wbc            # post-process"
+echo "     python postprocess.py                                # post-process"

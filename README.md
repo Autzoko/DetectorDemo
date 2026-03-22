@@ -2,24 +2,50 @@
 
 3D breast ultrasound (ABUS) lesion detection inference pipeline.
 
-## Environment Setup
+## Setup
 
 ```bash
+# Clone the repo
+git clone https://github.com/Autzoko/DetectorDemo.git
+cd DetectorDemo
+
+# Setup environment (creates conda env, installs dependencies, downloads model)
 bash setup.sh
+
+# Activate environment
 conda activate detdemo
 ```
 
-## Quick Start
+## Usage
 
-### 1. Prepare Data
+### Step 1: Configure data path
 
-Convert raw NIfTI files to the expected format:
+Edit `config.json`, set `env.det_data` to your raw data root:
+
+```bash
+# Example: your data is at /scratch/user/data/nnDet
+# Edit config.json -> "det_data": "/scratch/user/data/nnDet"
+```
+
+The data directory should contain:
+
+```
+<det_data>/
+└── Task100_BreastABUS/
+    └── raw_splitted/
+        └── imagesTs/
+            ├── case_00000_0000.nii.gz
+            ├── case_00001_0000.nii.gz
+            └── ...
+```
+
+### Step 2: Prepare data (if using raw NIfTI files)
 
 ```bash
 python prepare_data.py --input /path/to/raw/nii_files
 ```
 
-### 2. Run Inference
+### Step 3: Run inference
 
 ```bash
 python predict.py
@@ -37,44 +63,18 @@ Skip preprocessing (if already done):
 python predict.py --no_preprocess
 ```
 
-### 3. Post-Processing
+### Step 4: Post-processing
 
 ```bash
 python postprocess.py
 ```
 
-Specify custom prediction directory:
-
-```bash
-python postprocess.py --pred_dir /path/to/predictions
-```
-
-### Full Pipeline (One Command)
+### Full pipeline (one command)
 
 ```bash
 bash run_pipeline.sh
 bash run_pipeline.sh --test_data /path/to/nii_files
 bash run_pipeline.sh --skip_predict    # post-process only
-```
-
-## Configuration
-
-All settings are in `config.json`:
-
-- `predict.task` / `predict.model` / `predict.fold`: model selection
-- `env.det_data`: raw data root directory (**must be changed to your path**)
-- `env.det_models`: model weights directory (default: `./models`)
-- `density_wbc.*`: post-processing parameters
-
-## Model Files
-
-Place model files at:
-
-```
-models/<task>/<model>/fold0__0/
-  config.yaml
-  plan_inference.pkl
-  model_best.ckpt
 ```
 
 ## Output

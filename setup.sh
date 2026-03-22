@@ -39,8 +39,12 @@ echo "Installing PyTorch 1.11 + CUDA 11.3..."
 pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 \
     -f https://download.pytorch.org/whl/torch_stable.html
 
-# ---- Step 3: Install detection framework from local copy ----
+# ---- Step 3: Install detection framework ----
 echo ""
+if [ ! -d "$SCRIPT_DIR/nnDetection" ]; then
+    echo "Cloning detection framework..."
+    git clone https://github.com/MIC-DKFZ/nnDetection.git "$SCRIPT_DIR/nnDetection"
+fi
 echo "Installing detection framework from local source..."
 cd "$SCRIPT_DIR/nnDetection"
 pip install -e .

@@ -1,5 +1,5 @@
 """
-nnDetection PatchCls Post-Processing
+Adaptive Detection Filtering Post-Processing
 
 Applies Adaptive Detection Filtering (ADF) to raw model predictions:
   - Score filtering with density-weighted rescoring
@@ -99,7 +99,7 @@ BIRADS_CLASS_NAMES = {0: "BI-RADS 2", 1: "BI-RADS 3", 2: "BI-RADS 4"}
 
 def load_predictions(pred_dir, case_id, score_thresh=0.0):
     """
-    Load nnDetection predictions from pkl file.
+    Load predictions from pkl file.
 
     Box format in pkl: [z_min, y_min, z_max, y_max, x_min, x_max]
     where d0=Z, d1=Y, d2=X.
@@ -477,7 +477,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     case_to_file = load_case_mapping(stats_csv)
 
     print("=" * 70)
-    print("  nnDetection PatchCls: Adaptive Detection Filtering")
+    print("  Adaptive Detection Filtering")
     print("=" * 70)
     print(f"  Predictions:      {pred_dir}")
     print(f"  Output:           {output_dir}")
@@ -605,8 +605,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
 # =====================================================================
 def main():
     parser = argparse.ArgumentParser(
-        description="nnDetection PatchCls Post-Processing: "
-                    "Adaptive Detection Filtering")
+        description="Adaptive Detection Filtering Post-Processing")
     parser.add_argument("--config", type=str,
                         default=str(Path(__file__).parent / "config.json"),
                         help="Path to config.json")

@@ -1,21 +1,8 @@
 #!/bin/bash
 # ============================================================
-# nnDetection Inference Pipeline (via predict.py)
+# Inference Pipeline
 #
 # Raw 3D ABUS data -> Preprocessing -> Model Prediction -> Post-Processing
-#
-# Directory structure:
-#   nndet_patchcls_inference/
-#   ├── nnDetection/               <- full nnDetection source (pip install -e)
-#   ├── models/<TASK>/<MODEL>/fold0__0/
-#   │   ├── config.yaml            <- download from HPC
-#   │   ├── plan_inference.pkl     <- download from HPC (or generate)
-#   │   └── model_best.ckpt       <- download from HPC
-#   ├── test_predictions/          <- prediction output (pkl files)
-#   ├── results/                   <- post-processing output (CSV files)
-#   ├── predict.py                 <- Step 1: nnDetection inference
-#   ├── postprocess.py             <- Step 2: post-processing
-#   └── config.json                <- all configuration
 #
 # Usage:
 #   bash run_pipeline.sh                                  # full pipeline
@@ -59,13 +46,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "============================================================"
-echo "  nnDetection Inference Pipeline"
+echo "  Inference Pipeline"
 echo "============================================================"
 echo ""
 
 # ---- Step 1: Prediction ----
 if [ "$SKIP_PREDICT" = false ]; then
-    echo ">>> Step 1: nnDetection Prediction"
+    echo ">>> Step 1: Model Prediction"
     echo "------------------------------------------------------------"
     python3 "$SCRIPT_DIR/predict.py" --config "$SCRIPT_DIR/config.json" $PREDICT_ARGS
     echo ""

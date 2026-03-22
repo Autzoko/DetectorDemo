@@ -1,11 +1,11 @@
 #!/bin/bash
 # ============================================================
-# Step 1: Run nnDetection Inference
+# Step 1: Run Inference
 #
 # Reads task/model/fold/paths from config.json automatically.
 #
 # Prerequisites:
-#   - nnDetection conda env activated (conda activate nndet)
+#   - Conda env activated (conda activate detdemo)
 #   - Model files in place (config.yaml, plan_inference.pkl, *.ckpt)
 #   - Raw test data (nii.gz files)
 #
@@ -36,7 +36,7 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export det_num_threads="${det_num_threads:-6}"
 
 echo "============================================"
-echo "  nnDetection Inference"
+echo "  Model Inference"
 echo "============================================"
 echo "Task:       $TASK"
 echo "Model:      $MODEL"

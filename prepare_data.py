@@ -1,7 +1,7 @@
 """
-Prepare raw NIfTI data for nnDetection inference.
+Prepare raw NIfTI data for inference.
 
-Converts arbitrary .nii/.nii.gz files to nnDetection's expected format:
+Converts arbitrary .nii/.nii.gz files to the expected format:
   case_XXXXX_0000.nii.gz
 
 Also creates a mapping file (case_mapping.json) so results can be
@@ -39,7 +39,7 @@ def find_nii_files(input_dir):
 
 
 def convert_to_nndet_format(nii_files, output_dir, start_id=0):
-    """Convert NIfTI files to nnDetection naming convention."""
+    """Convert NIfTI files to the expected naming convention."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     mapping = {}
@@ -199,7 +199,7 @@ def _index_supplementary(nii_files, mapping, cache_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Prepare raw NIfTI data for nnDetection inference")
+        description="Prepare raw NIfTI data for inference")
     parser.add_argument("--input", "-i", type=str, required=True,
                         help="Directory containing raw .nii/.nii.gz files")
     parser.add_argument("--output", "-o", type=str, default=None,

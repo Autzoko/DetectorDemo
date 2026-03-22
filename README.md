@@ -1,6 +1,6 @@
-# nnDetection PatchCls Inference
+# 3D ABUS Lesion Detection Inference
 
-3D breast ultrasound (ABUS) lesion detection inference pipeline based on nnDetection.
+3D breast ultrasound (ABUS) lesion detection inference pipeline.
 
 ## Environment Setup
 
@@ -13,7 +13,7 @@ conda activate detdemo
 
 ### 1. Prepare Data
 
-Convert raw NIfTI files to nnDetection format:
+Convert raw NIfTI files to the expected format:
 
 ```bash
 python prepare_data.py --input /path/to/raw/nii_files

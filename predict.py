@@ -1,11 +1,11 @@
 """
-nnDetection PatchCls Inference: Raw 3D data → Prediction pkl files.
+3D ABUS Lesion Detection Inference: Raw 3D data → Prediction pkl files.
 
-This script wraps nnDetection's inference pipeline into a single entry point.
+This script wraps the inference pipeline into a single entry point.
 It handles: environment setup → preprocessing → model loading → prediction.
 
 Requirements:
-  - nnDetection installed (pip install -e nnDetection/)
+  - Detection framework installed (pip install -e nnDetection/)
   - Model files in training_dir: config.yaml, plan_inference.pkl, *.ckpt
   - Raw test data: imagesTs/case_XXXXX_0000.nii.gz
 
@@ -25,7 +25,7 @@ from pathlib import Path
 
 
 def setup_env(cfg):
-    """Set nnDetection environment variables from config.
+    """Set environment variables from config.
     Resolves relative paths (e.g., './models') relative to the script directory.
     """
     script_dir = Path(__file__).parent
@@ -95,7 +95,7 @@ def run_inference(training_dir, process=True, num_models=None,
                   num_tta_transforms=None, num_processes=3,
                   output_dir=None, test_data_dir=None):
     """
-    Run nnDetection inference pipeline.
+    Run inference pipeline.
 
     This replicates scripts/predict.py run() but with explicit paths.
 
@@ -206,7 +206,7 @@ def run_inference(training_dir, process=True, num_models=None,
 
 def main():
     parser = argparse.ArgumentParser(
-        description="nnDetection PatchCls Inference")
+        description="3D ABUS Lesion Detection Inference")
     parser.add_argument("--config", type=str,
                         default=str(Path(__file__).parent / "config.json"))
     parser.add_argument("--training_dir", type=str, default=None,
@@ -227,7 +227,7 @@ def main():
         cfg = json.load(f)
 
     print("=" * 60)
-    print("  nnDetection PatchCls Inference")
+    print("  3D ABUS Lesion Detection Inference")
     print("=" * 60)
 
     # Setup environment

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# Complete nnDetection Inference Pipeline
+# Complete Inference Pipeline
 #
 # Raw 3D data -> Preprocessing -> Model Inference -> Post-Processing
 #
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "============================================"
-echo "  nnDetection Inference Pipeline"
+echo "  Inference Pipeline"
 echo "============================================"
 echo ""
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================
-# Setup nnDetection Inference Environment
+# Setup Inference Environment
 #
-# Installs nnDetection from the local copy included in this
+# Installs dependencies from the local copy included in this
 # project folder. Works on any machine with conda.
 #
 # Usage:
@@ -14,7 +14,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "============================================"
-echo "  nnDetection Inference: Environment Setup"
+echo "  Inference Environment Setup"
 echo "============================================"
 
 # ---- Step 1: Create conda env ----
@@ -39,9 +39,9 @@ echo "Installing PyTorch 1.11 + CUDA 11.3..."
 pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 \
     -f https://download.pytorch.org/whl/torch_stable.html
 
-# ---- Step 3: Install nnDetection from local copy ----
+# ---- Step 3: Install detection framework from local copy ----
 echo ""
-echo "Installing nnDetection from local source..."
+echo "Installing detection framework from local source..."
 cd "$SCRIPT_DIR/nnDetection"
 pip install -e .
 

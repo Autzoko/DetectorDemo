@@ -1,0 +1,33 @@
+{
+    "predict": {
+        "task": "Task100_BreastABUS",
+        "model": "RetinaUNetV001_D3V001_3d",
+        "fold": 0,
+        "_comment": "Model files at: models/<task>/<model>/fold0__0/{config.yaml, plan_inference.pkl, *.ckpt}"
+    },
+    "env": {
+        "det_data": "/Volumes/Lang/Research/Data/3D Ultrasound/nnDet",
+        "det_models": "./models",
+        "OMP_NUM_THREADS": "1",
+        "det_num_threads": "6",
+        "_comment": "det_data: CHANGE THIS to your raw data root. det_models: relative to this folder or absolute path."
+    },
+    "postprocess": {
+        "iou_thresh": 0.1,
+        "_comment": "IoU threshold for detection matching/clustering"
+    },
+    "density_wbc": {
+        "min_score": 0.12,
+        "density_radius": 45,
+        "density_power": 0.1,
+        "cluster_iou": 0.2,
+        "top_k": 0,
+        "_comment": "Adaptive Detection Filtering parameters. top_k=0 uses tiered adaptive selection (recommended)."
+    },
+    "paths": {
+        "predictions_dir": "test_predictions",
+        "stats_csv": "",
+        "output_dir": "results",
+        "_comment": "predictions_dir: model output. output_dir: post-processed results."
+    }
+}

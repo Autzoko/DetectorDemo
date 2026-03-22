@@ -1,0 +1,6 @@
+# Core dependencies (nnDetection installed separately via setup.sh)
+numpy
+nibabel
+loguru
+omegaconf
+hydra-core

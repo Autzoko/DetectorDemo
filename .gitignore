@@ -1,0 +1,31 @@
+# Cache and temporary files
+.cache/
+__pycache__/
+*.pyc
+*.egg-info/
+*.eggs/
+build/
+dist/
+
+# Model files (too large for git)
+models/*/
+
+# Results and outputs
+results/
+test_predictions/
+test_output/
+case_mapping.json
+
+# Large binary files
+*.ckpt
+*.pkl
+*.npz
+*.nii
+*.nii.gz
+
+# IDE
+.idea/
+.vscode/
+*.swp
+nnDetection/
+.DS_Store

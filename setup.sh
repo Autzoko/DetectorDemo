@@ -52,7 +52,23 @@ pip install -e .
 # ---- Step 4: Install additional dependencies ----
 echo ""
 echo "Installing additional dependencies..."
-pip install nibabel loguru omegaconf hydra-core
+pip install nibabel loguru omegaconf hydra-core gdown
+
+# ---- Step 5: Download model files ----
+MODEL_DIR="$SCRIPT_DIR/models/Task100_BreastABUS/RetinaUNetV001_D3V001_3d/fold0__0"
+if [ ! -f "$MODEL_DIR/model_best.ckpt" ]; then
+    echo ""
+    echo "Downloading model files..."
+    mkdir -p "$MODEL_DIR"
+    GDRIVE_ID="1tyrooafGsEBBanttL-Sxjs5YePWxrcTm"
+    gdown "$GDRIVE_ID" -O "$SCRIPT_DIR/models/model_files.zip"
+    unzip -o "$SCRIPT_DIR/models/model_files.zip" -d "$MODEL_DIR"
+    rm -f "$SCRIPT_DIR/models/model_files.zip"
+    echo "Model files extracted to: $MODEL_DIR"
+else
+    echo ""
+    echo "Model files already exist at: $MODEL_DIR"
+fi
 
 echo ""
 echo "============================================"
@@ -62,15 +78,8 @@ echo ""
 echo "Next steps:"
 echo "  1. Update config.json:"
 echo "     - Set 'det_data' to your raw data directory"
-echo "     - Set 'predict.task' and 'predict.model' to match your model"
 echo ""
-echo "  2. Place model files (from HPC) at the path matching config.json:"
-echo "     models/<task>/<model>/fold0__0/"
-echo "       config.yaml"
-echo "       plan_inference.pkl (or plan.pkl + run: python generate_plan_inference.py)"
-echo "       model_best.ckpt"
-echo ""
-echo "  3. Run:"
+echo "  2. Run:"
 echo "     conda activate $ENV_NAME"
 echo "     cd $SCRIPT_DIR"
 echo "     python predict.py --test_data /path/to/nii_files   # inference"

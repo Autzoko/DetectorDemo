@@ -220,6 +220,8 @@ def main():
                         help="Skip data preprocessing")
     parser.add_argument("--num_processes", type=int, default=3,
                         help="Number of preprocessing workers")
+    parser.add_argument("--no_tta", action="store_true",
+                        help="Disable test-time augmentation (8x faster)")
     args = parser.parse_args()
 
     # Load config
@@ -254,11 +256,13 @@ def main():
             output_dir = Path(__file__).parent / output_dir
 
     # Run inference
+    num_tta = 1 if args.no_tta else None
     pred_dir = run_inference(
         training_dir=training_dir,
         process=not args.no_preprocess,
         output_dir=output_dir,
         num_processes=args.num_processes,
+        num_tta_transforms=num_tta,
         test_data_dir=args.test_data,
     )
 

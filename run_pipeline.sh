@@ -38,6 +38,9 @@ while [[ $# -gt 0 ]]; do
         --no_preprocess)
             PREDICT_ARGS="$PREDICT_ARGS --no_preprocess"
             shift ;;
+        --no_tta)
+            PREDICT_ARGS="$PREDICT_ARGS --no_tta"
+            shift ;;
         --test_data)
             PREDICT_ARGS="$PREDICT_ARGS --test_data $2"
             shift 2 ;;

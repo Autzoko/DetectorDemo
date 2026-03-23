@@ -260,13 +260,13 @@ def main():
     pred_dir = script_dir / "test_predictions"
     pred_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear spatial data cache
     cache_dir = script_dir / ".cache"
-    if cache_dir.exists():
-        shutil.rmtree(cache_dir)
 
     if args.input:
         # ---- Mode 1: From raw NIfTI file ----
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+
         nii_path = Path(args.input)
         if not nii_path.exists():
             print(f"ERROR: Input file not found: {nii_path}")
@@ -293,10 +293,7 @@ def main():
         with open(script_dir / "case_mapping.json", 'w') as f:
             json.dump(mapping, f, indent=2)
 
-        # Update config for temp data
-        cfg["env"]["det_data"] = str(tmp_data)
-        with open(args.config, 'w') as f:
-            json.dump(cfg, f, indent=4)
+        # Override data path for this run (env var only, don't modify config.json)
         os.environ["det_data"] = str(tmp_data)
 
         # Clean previous predictions
@@ -323,10 +320,11 @@ def main():
         case_id = args.case_id
         print(f"  Case: {case_id}")
 
-        # Try to index spatial data from raw data directory
-        raw_dir = args.raw_data_dir or cfg["env"].get("det_data", "")
-        if raw_dir:
-            _try_index_from_mapping(case_id, raw_dir, cache_dir)
+        # Auto-index if not already cached
+        if not (cache_dir / ".ready").exists():
+            raw_dir = args.raw_data_dir or cfg["env"].get("det_data", "")
+            if raw_dir:
+                _try_index_from_mapping(case_id, raw_dir, cache_dir)
 
         # Clean previous predictions for this case
         for old_pkl in pred_dir.glob(f"{case_id}_*.pkl"):

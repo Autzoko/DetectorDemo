@@ -635,7 +635,7 @@ def main():
     pred_dir = args.pred_dir or cfg["paths"]["predictions_dir"]
     output_dir = args.output_dir or cfg["paths"]["output_dir"]
     stats_csv = cfg["paths"].get("stats_csv", "")
-    iou_t = args.iou_thresh or cfg.get("postprocess", {}).get("iou_thresh", 0.1)
+    iou_t = args.iou_thresh if args.iou_thresh is not None else cfg.get("postprocess", {}).get("iou_thresh", 0.1)
 
     # Resolve relative paths
     if pred_dir and not os.path.isabs(pred_dir):
@@ -647,12 +647,15 @@ def main():
 
     # Build filtering params
     dwbc_cfg = cfg.get("density_wbc", {})
+    def _arg_or(arg_val, cfg_val, default):
+        return arg_val if arg_val is not None else cfg_val if cfg_val is not None else default
+
     dwbc_params = {
-        "min_score": args.min_score or dwbc_cfg.get("min_score", DWBC_DEFAULTS["min_score"]),
-        "density_radius": args.density_radius or dwbc_cfg.get("density_radius", DWBC_DEFAULTS["density_radius"]),
-        "density_power": args.density_power or dwbc_cfg.get("density_power", DWBC_DEFAULTS["density_power"]),
-        "cluster_iou": args.cluster_iou or dwbc_cfg.get("cluster_iou", DWBC_DEFAULTS["cluster_iou"]),
-        "top_k": args.top_k or dwbc_cfg.get("top_k", DWBC_DEFAULTS["top_k"]),
+        "min_score": _arg_or(args.min_score, dwbc_cfg.get("min_score"), DWBC_DEFAULTS["min_score"]),
+        "density_radius": _arg_or(args.density_radius, dwbc_cfg.get("density_radius"), DWBC_DEFAULTS["density_radius"]),
+        "density_power": _arg_or(args.density_power, dwbc_cfg.get("density_power"), DWBC_DEFAULTS["density_power"]),
+        "cluster_iou": _arg_or(args.cluster_iou, dwbc_cfg.get("cluster_iou"), DWBC_DEFAULTS["cluster_iou"]),
+        "top_k": _arg_or(args.top_k, dwbc_cfg.get("top_k"), DWBC_DEFAULTS["top_k"]),
     }
 
     run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=iou_t)

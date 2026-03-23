@@ -49,9 +49,32 @@ echo "Installing detection framework from local source..."
 echo ""
 echo "NOTE: For GPU support, run this setup on a GPU node (e.g., via srun --gres=gpu:1)."
 echo "      If installed on a login node, CUDA extensions will not compile."
-echo "      To fix later: conda activate $ENV_NAME && cd $SCRIPT_DIR/nnDetection && pip install -e ."
 echo ""
+
+# Auto-detect CUDA_HOME if not set
+if [ -z "$CUDA_HOME" ]; then
+    _NVCC_PATH=$(which nvcc 2>/dev/null)
+    if [ -n "$_NVCC_PATH" ]; then
+        export CUDA_HOME=$(dirname $(dirname "$_NVCC_PATH"))
+        echo "  Auto-detected CUDA_HOME=$CUDA_HOME"
+    fi
+fi
+
+# Auto-detect GPU architecture for CUDA compilation
+if [ -z "$TORCH_CUDA_ARCH_LIST" ] && python3 -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+    _GPU_ARCH=$(python3 -c "
+import torch
+cap = torch.cuda.get_device_capability(0)
+print(f'{cap[0]}.{cap[1]}')
+" 2>/dev/null)
+    if [ -n "$_GPU_ARCH" ]; then
+        export TORCH_CUDA_ARCH_LIST="$_GPU_ARCH"
+        echo "  Auto-detected TORCH_CUDA_ARCH_LIST=$_GPU_ARCH"
+    fi
+fi
+
 cd "$SCRIPT_DIR/nnDetection"
+rm -rf build/ nndet/_C*.so  # Clean old builds
 pip install -e .
 
 # Patch: ensure NMS falls back to CPU if CUDA extension not available

@@ -24,6 +24,13 @@ _TORCH_LIB=$(python3 -c "import torch, os; print(os.path.join(os.path.dirname(to
 if [ -n "$_TORCH_LIB" ] && [ -d "$_TORCH_LIB" ]; then
     export LD_LIBRARY_PATH="$_TORCH_LIB:$LD_LIBRARY_PATH"
 fi
+# Auto-detect CUDA_HOME if not set
+if [ -z "$CUDA_HOME" ]; then
+    _NVCC_PATH=$(which nvcc 2>/dev/null)
+    if [ -n "$_NVCC_PATH" ]; then
+        export CUDA_HOME=$(dirname $(dirname "$_NVCC_PATH"))
+    fi
+fi
 
 # ---- Parse arguments ----
 SKIP_PREDICT=false

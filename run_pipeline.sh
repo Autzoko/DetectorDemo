@@ -14,10 +14,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ---- Fix CUDA stub library issue (common on HPC) ----
+# ---- Fix CUDA/library issues (common on HPC) ----
 # Remove CUDA stubs from LD_LIBRARY_PATH so runtime uses real CUDA drivers
 if echo "$LD_LIBRARY_PATH" | grep -q "stubs"; then
     export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed 's|[^:]*stubs[^:]*:||g; s|:[^:]*stubs[^:]*||g; s|^[^:]*stubs[^:]*$||g')
+fi
+# Ensure PyTorch shared libraries are findable (needed for CUDA NMS extension)
+_TORCH_LIB=$(python3 -c "import torch, os; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))" 2>/dev/null)
+if [ -n "$_TORCH_LIB" ] && [ -d "$_TORCH_LIB" ]; then
+    export LD_LIBRARY_PATH="$_TORCH_LIB:$LD_LIBRARY_PATH"
 fi
 
 # ---- Parse arguments ----

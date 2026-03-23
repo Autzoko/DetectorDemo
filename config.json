@@ -6,7 +6,7 @@
         "_comment": "Model files at: models/<task>/<model>/fold0__0/{config.yaml, plan_inference.pkl, *.ckpt}"
     },
     "env": {
-        "det_data": "/Volumes/Lang/Research/Data/3D Ultrasound/nnDet",
+        "det_data": "./data",
         "det_models": "./models",
         "OMP_NUM_THREADS": "1",
         "det_num_threads": "6",

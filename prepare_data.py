@@ -223,15 +223,19 @@ def main():
 
     print(f"Found {len(nii_files)} NIfTI files in {input_dir}")
 
+    with open(args.config) as f:
+        cfg = json.load(f)
+    task = cfg["predict"]["task"]
+    script_dir = Path(__file__).parent
+
     if args.output:
         output_dir = Path(args.output)
     else:
-        with open(args.config) as f:
-            cfg = json.load(f)
-        det_data = cfg["env"]["det_data"]
-        task = cfg["predict"]["task"]
-        if not os.path.isabs(det_data):
-            det_data = str(Path(__file__).parent / det_data)
+        # Auto-configure: use ./data as det_data root
+        det_data = str(script_dir / "data")
+        cfg["env"]["det_data"] = det_data
+        with open(args.config, 'w') as f:
+            json.dump(cfg, f, indent=4)
         output_dir = Path(det_data) / task / "raw_splitted" / "imagesTs"
 
     print(f"Output: {output_dir}")
@@ -251,7 +255,6 @@ def main():
     print("Converting files...")
     mapping = convert_to_nndet_format(nii_files, output_dir, args.start_id)
 
-    script_dir = Path(__file__).parent
     mapping_path = script_dir / "case_mapping.json"
     with open(mapping_path, 'w') as f:
         json.dump(mapping, f, indent=2, ensure_ascii=False)

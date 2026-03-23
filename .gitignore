@@ -10,7 +10,8 @@ dist/
 # Model files (too large for git)
 models/*/
 
-# Results and outputs
+# Data and results
+data/
 results/
 test_predictions/
 test_output/

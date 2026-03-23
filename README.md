@@ -5,32 +5,26 @@
 ## Setup
 
 ```bash
-# Clone the repo
 git clone https://github.com/Autzoko/DetectorDemo.git
 cd DetectorDemo
-
-# Setup environment (creates conda env, installs dependencies, downloads model)
 bash setup.sh
-
-# Activate environment
 conda activate detdemo
 ```
 
 ## Usage
 
-### Step 1: Configure data path
-
-Edit `config.json`, set `env.det_data` to your raw data root:
+Put your data at any path, then one command runs everything:
 
 ```bash
-# Example: your data is at /scratch/user/data/nnDet
-# Edit config.json -> "det_data": "/scratch/user/data/nnDet"
+bash run_pipeline.sh --data /path/to/your/data
 ```
 
-The data directory should contain:
+This will automatically update `config.json` and run the full pipeline (preprocessing + inference + post-processing).
+
+### Data directory structure
 
 ```
-<det_data>/
+/path/to/your/data/
 └── Task100_BreastABUS/
     └── raw_splitted/
         └── imagesTs/
@@ -39,46 +33,31 @@ The data directory should contain:
             └── ...
 ```
 
-### Step 2: Prepare data (if using raw NIfTI files)
+### If using raw NIfTI files (arbitrary filenames)
 
 ```bash
+# Step 1: Convert to expected format
 python prepare_data.py --input /path/to/raw/nii_files
+
+# Step 2: Run pipeline
+bash run_pipeline.sh --data /path/to/your/data
 ```
 
-### Step 3: Run inference
+### Other options
 
 ```bash
-python predict.py
-```
+# Skip preprocessing (data already preprocessed)
+bash run_pipeline.sh --data /path/to/your/data --no_preprocess
 
-Or specify custom test data:
+# Only run post-processing (predictions already exist)
+bash run_pipeline.sh --skip_predict
 
-```bash
+# Run steps separately
 python predict.py --test_data /path/to/nii_files
-```
-
-Skip preprocessing (if already done):
-
-```bash
-python predict.py --no_preprocess
-```
-
-### Step 4: Post-processing
-
-```bash
 python postprocess.py
-```
-
-### Full pipeline (one command)
-
-```bash
-bash run_pipeline.sh
-bash run_pipeline.sh --test_data /path/to/nii_files
-bash run_pipeline.sh --skip_predict    # post-process only
 ```
 
 ## Output
 
-- `test_predictions/`: raw model predictions (pkl files)
 - `results/predictions.csv`: filtered detections per case
 - `results/summary.csv`: per-case summary

@@ -2,13 +2,11 @@
 # ============================================================
 # Inference Pipeline
 #
-# Raw 3D ABUS data -> Preprocessing -> Model Prediction -> Post-Processing
-#
 # Usage:
-#   bash run_pipeline.sh                                  # full pipeline
-#   bash run_pipeline.sh --skip_predict                   # only post-process
-#   bash run_pipeline.sh --no_preprocess                  # skip preprocessing
-#   bash run_pipeline.sh --test_data /path/to/nii_files   # custom test data
+#   bash run_pipeline.sh --data /path/to/data              # full pipeline
+#   bash run_pipeline.sh --skip_predict                     # post-process only
+#   bash run_pipeline.sh --data /path --no_preprocess       # skip preprocessing
+#   bash run_pipeline.sh --test_data /path/to/nii_files     # custom test NIfTI
 # ============================================================
 
 set -e
@@ -21,9 +19,13 @@ SKIP_PREDICT=false
 PREDICT_ARGS=""
 PP_ARGS=""
 PRED_DIR=""
+DATA_PATH=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --data)
+            DATA_PATH="$2"
+            shift 2 ;;
         --skip_predict)
             SKIP_PREDICT=true
             shift ;;
@@ -44,6 +46,23 @@ while [[ $# -gt 0 ]]; do
             shift ;;
     esac
 done
+
+# ---- Auto-configure data path ----
+if [ -n "$DATA_PATH" ]; then
+    DATA_PATH="$(cd "$DATA_PATH" 2>/dev/null && pwd || echo "$DATA_PATH")"
+    echo "Configuring data path: $DATA_PATH"
+    python3 -c "
+import json, sys
+cfg_path = '$SCRIPT_DIR/config.json'
+with open(cfg_path) as f:
+    cfg = json.load(f)
+cfg['env']['det_data'] = '$DATA_PATH'
+with open(cfg_path, 'w') as f:
+    json.dump(cfg, f, indent=4)
+print('  config.json updated: det_data =', '$DATA_PATH')
+"
+    echo ""
+fi
 
 echo "============================================================"
 echo "  Inference Pipeline"

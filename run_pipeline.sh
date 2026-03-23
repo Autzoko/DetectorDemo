@@ -41,6 +41,9 @@ while [[ $# -gt 0 ]]; do
         --no_tta)
             PREDICT_ARGS="$PREDICT_ARGS --no_tta"
             shift ;;
+        --case_id)
+            PREDICT_ARGS="$PREDICT_ARGS --case_id $2"
+            shift 2 ;;
         --test_data)
             PREDICT_ARGS="$PREDICT_ARGS --test_data $2"
             shift 2 ;;

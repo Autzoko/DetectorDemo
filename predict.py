@@ -93,7 +93,7 @@ def check_files(training_dir):
 
 def run_inference(training_dir, process=True, num_models=None,
                   num_tta_transforms=None, num_processes=3,
-                  output_dir=None, test_data_dir=None):
+                  output_dir=None, test_data_dir=None, case_ids=None):
     """
     Run inference pipeline.
 
@@ -192,7 +192,7 @@ def run_inference(training_dir, process=True, num_models=None,
         num_tta_transforms=num_tta_transforms,
         model_fn=load_all_models,
         restore=True,
-        case_ids=None,
+        case_ids=case_ids,
         **resolved_cfg.get("inference_kwargs", {}),
     )
 
@@ -222,6 +222,8 @@ def main():
                         help="Number of preprocessing workers")
     parser.add_argument("--no_tta", action="store_true",
                         help="Disable test-time augmentation (8x faster)")
+    parser.add_argument("--case_id", type=str, default=None,
+                        help="Only predict a specific case (e.g., case_00000)")
     args = parser.parse_args()
 
     # Load config
@@ -257,6 +259,7 @@ def main():
 
     # Run inference
     num_tta = 1 if args.no_tta else None
+    case_ids = [args.case_id] if args.case_id else None
     pred_dir = run_inference(
         training_dir=training_dir,
         process=not args.no_preprocess,
@@ -264,6 +267,7 @@ def main():
         num_processes=args.num_processes,
         num_tta_transforms=num_tta,
         test_data_dir=args.test_data,
+        case_ids=case_ids,
     )
 
     print(f"\n{'=' * 60}")

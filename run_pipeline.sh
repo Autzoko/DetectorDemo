@@ -14,6 +14,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# ---- Fix CUDA stub library issue (common on HPC) ----
+# Remove CUDA stubs from LD_LIBRARY_PATH so runtime uses real CUDA drivers
+if echo "$LD_LIBRARY_PATH" | grep -q "stubs"; then
+    export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed 's|[^:]*stubs[^:]*:||g; s|:[^:]*stubs[^:]*||g; s|^[^:]*stubs[^:]*$||g')
+fi
+
 # ---- Parse arguments ----
 SKIP_PREDICT=false
 PREDICT_ARGS=""

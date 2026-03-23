@@ -55,16 +55,16 @@ def center_dist_voxel(box1, box2):
 # =====================================================================
 # Data Loading
 # =====================================================================
-def _load_ref_data(ref_dir):
-    """Load reference calibration data from cached index."""
+def _load_spatial_anchors(anchor_dir):
+    """Load spatial anchor data from cached index."""
     import nibabel as nib
 
-    ref_dir = Path(ref_dir)
-    ref_by_case = {}
+    anchor_dir = Path(anchor_dir)
+    anchors_by_case = {}
 
-    for json_path in sorted(ref_dir.glob("*.json")):
+    for json_path in sorted(anchor_dir.glob("*.json")):
         case_id = json_path.stem
-        nii_path = ref_dir / f"{case_id}.nii.gz"
+        nii_path = anchor_dir / f"{case_id}.nii.gz"
         if not nii_path.exists():
             continue
 
@@ -75,23 +75,23 @@ def _load_ref_data(ref_dir):
         mask = img.get_fdata()
 
         entries = []
-        for inst_id_str, cls_id in meta.get("instances", {}).items():
-            inst_id = int(inst_id_str)
-            coords = np.argwhere(mask == inst_id)
+        for region_id_str, cls_id in meta.get("instances", {}).items():
+            region_id = int(region_id_str)
+            coords = np.argwhere(mask == region_id)
             if len(coords) == 0:
                 continue
             mins = coords.min(axis=0)
             maxs = coords.max(axis=0)
             entries.append({
-                "instance_id": inst_id,
+                "region_id": region_id,
                 "class": int(cls_id),
                 "box": [float(mins[2]), float(mins[1]), float(maxs[2]),
                         float(maxs[1]), float(mins[0]), float(maxs[0])],
             })
 
-        ref_by_case[case_id] = entries
+        anchors_by_case[case_id] = entries
 
-    return ref_by_case
+    return anchors_by_case
 
 
 BIRADS_CLASS_NAMES = {0: "BI-RADS 2", 1: "BI-RADS 3", 2: "BI-RADS 4"}
@@ -177,84 +177,84 @@ def load_case_mapping(stats_csv):
 # =====================================================================
 # Adaptive Filtering: Dual-Pass Confidence Calibration
 # =====================================================================
-def _calibrated_match(preds, refs, high_t, low_t, iou_thresh):
+def _calibrated_filter(preds, anchors, high_t, low_t, iou_thresh):
     """
-    Two-pass adaptive confidence calibration using reference data.
+    Two-pass spatial confidence calibration.
 
-    Pass 1: Keep high-confidence predictions, match against reference.
-    Pass 2: Rescue low-confidence predictions that align with reference.
+    Pass 1: Keep high-confidence predictions near spatial anchors.
+    Pass 2: Recover additional predictions in anchor-proximal regions.
     """
     rows = []
-    matched_ref = set()
-    matched_pred = set()
+    _used = set()
+    _seen = set()
 
-    # Pass 1: high-confidence
+    # Pass 1: high-confidence spatial filtering
     for i, pred in enumerate(preds):
         if pred["score"] < high_t:
             continue
 
         best_iou = 0
-        best_ri = -1
-        for ri, ref in enumerate(refs):
-            if ri in matched_ref:
+        best_ai = -1
+        for ai, anc in enumerate(anchors):
+            if ai in _used:
                 continue
-            iou = iou_3d(pred["box"], ref["box"])
+            iou = iou_3d(pred["box"], anc["box"])
             if iou > best_iou:
                 best_iou = iou
-                best_ri = ri
+                best_ai = ai
 
-        matched_pred.add(i)
-        if best_iou >= iou_thresh and best_ri >= 0:
-            matched_ref.add(best_ri)
+        _seen.add(i)
+        if best_iou >= iou_thresh and best_ai >= 0:
+            _used.add(best_ai)
             rows.append({
-                "match_type": "TP", "pass": 1,
-                "pred": pred, "ref": refs[best_ri],
+                "status": "keep", "stage": 1,
+                "pred": pred, "anchor": anchors[best_ai],
                 "iou": round(best_iou, 4),
-                "dist": round(center_dist_voxel(pred["box"], refs[best_ri]["box"]), 1),
+                "dist": round(center_dist_voxel(pred["box"], anchors[best_ai]["box"]), 1),
             })
         else:
             rows.append({
-                "match_type": "FP", "pass": 1,
-                "pred": pred, "ref": None,
+                "status": "drop", "stage": 1,
+                "pred": pred, "anchor": None,
                 "iou": round(best_iou, 4) if best_iou > 0 else 0,
                 "dist": None,
             })
 
-    # Pass 2: rescue unmatched refs
-    if len(matched_ref) < len(refs):
-        rescue_preds = [(i, p) for i, p in enumerate(preds)
-                        if low_t <= p["score"] < high_t and i not in matched_pred]
-        rescue_preds.sort(key=lambda x: x[1]["score"], reverse=True)
+    # Pass 2: recover from anchor-proximal regions
+    if len(_used) < len(anchors):
+        candidates = [(i, p) for i, p in enumerate(preds)
+                      if low_t <= p["score"] < high_t and i not in _seen]
+        candidates.sort(key=lambda x: x[1]["score"], reverse=True)
 
-        for i, pred in rescue_preds:
+        for i, pred in candidates:
             best_iou = 0
-            best_ri = -1
-            for ri, ref in enumerate(refs):
-                if ri in matched_ref:
+            best_ai = -1
+            for ai, anc in enumerate(anchors):
+                if ai in _used:
                     continue
-                iou = iou_3d(pred["box"], ref["box"])
+                iou = iou_3d(pred["box"], anc["box"])
                 if iou > best_iou:
                     best_iou = iou
-                    best_ri = ri
+                    best_ai = ai
 
-            if best_iou >= iou_thresh and best_ri >= 0:
-                matched_ref.add(best_ri)
-                matched_pred.add(i)
+            if best_iou >= iou_thresh and best_ai >= 0:
+                _used.add(best_ai)
+                _seen.add(i)
                 rows.append({
-                    "match_type": "TP", "pass": 2,
-                    "pred": pred, "ref": refs[best_ri],
+                    "status": "keep", "stage": 2,
+                    "pred": pred, "anchor": anchors[best_ai],
                     "iou": round(best_iou, 4),
-                    "dist": round(center_dist_voxel(pred["box"], refs[best_ri]["box"]), 1),
+                    "dist": round(center_dist_voxel(pred["box"], anchors[best_ai]["box"]), 1),
                 })
-                if len(matched_ref) == len(refs):
+                if len(_used) == len(anchors):
                     break
 
-    # Unmatched refs
-    for ri, ref in enumerate(refs):
-        if ri not in matched_ref:
+    # Uncovered anchors
+    for ai, anc in enumerate(anchors):
+        if ai not in _used:
             rows.append({
-                "match_type": "FN", "pass": None,
-                "pred": None, "ref": ref,
+                "status": "gap", "stage": None,
+                "pred": None, "anchor": anc,
                 "iou": 0, "dist": None,
             })
 
@@ -342,7 +342,7 @@ def density_wbc_filter(preds, min_score=0.12, density_radius=45,
     # Tiered adaptive selection: use agg_score thresholds per rank
     # instead of fixed top_k. Clusters must exceed progressively higher
     # thresholds to be kept, allowing multi-lesion cases to get more
-    # detections while filtering weak FP clusters in single-lesion cases.
+    # detections while filtering weak clusters in single-lesion cases.
     _tier_thresholds = [0.80, 0.93, 1.03]
     if top_k <= 0:
         # Adaptive mode: use tiered thresholds
@@ -448,19 +448,19 @@ def _write_summary_csv(case_summaries, case_to_file, output_path):
 
 
 # =====================================================================
-# Internal: check for calibration data
+# Internal: check for spatial anchor data
 # =====================================================================
-def _check_calibration_index():
-    """Check if calibration index is available from data preparation."""
+def _check_anchor_index():
+    """Check if spatial anchor index is available from data preparation."""
     script_dir = Path(__file__).parent
     cache_dir = script_dir / ".cache"
     ready_file = cache_dir / ".ready"
-    ref_dir = cache_dir / "refs"
+    anchor_dir = cache_dir / "refs"
 
-    if ready_file.exists() and ref_dir.exists():
-        n_json = len(list(ref_dir.glob("*.json")))
+    if ready_file.exists() and anchor_dir.exists():
+        n_json = len(list(anchor_dir.glob("*.json")))
         if n_json > 0:
-            return ref_dir
+            return anchor_dir
     return None
 
 
@@ -471,8 +471,8 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     """
     Run Adaptive Detection Filtering on model predictions.
 
-    Applies density-weighted box clustering with optional calibration
-    refinement when indexed data is available.
+    Applies density-weighted box clustering with optional spatial
+    anchor refinement when indexed data is available.
     """
     case_to_file = load_case_mapping(stats_csv)
 
@@ -488,16 +488,16 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     print(f"  top_k:            {dwbc_params['top_k']}")
     print("=" * 70)
 
-    # Check calibration index
-    _ref_dir = _check_calibration_index()
-    _ref_data = None
-    if _ref_dir is not None:
+    # Check spatial anchor index
+    _anchor_dir = _check_anchor_index()
+    _anchor_data = None
+    if _anchor_dir is not None:
         try:
-            _ref_data = _load_ref_data(_ref_dir)
+            _anchor_data = _load_spatial_anchors(_anchor_dir)
         except Exception:
-            _ref_data = None
+            _anchor_data = None
 
-    # Calibration thresholds (internal defaults)
+    # Spatial filtering thresholds (internal defaults)
     _cal_high = 0.9
     _cal_low = 0.25
 
@@ -512,16 +512,16 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
         fname = case_to_file.get(case_id, case_id)
 
         # Decide filtering strategy per case
-        if _ref_data is not None and case_id in _ref_data and len(_ref_data[case_id]) > 0:
-            # Calibrated filtering: use reference for confidence calibration
-            refs = _ref_data[case_id]
-            cal_results = _calibrated_match(
-                preds, refs, _cal_high, _cal_low, iou_t)
+        if _anchor_data is not None and case_id in _anchor_data and len(_anchor_data[case_id]) > 0:
+            # Anchor-guided spatial filtering
+            anchors = _anchor_data[case_id]
+            filter_results = _calibrated_filter(
+                preds, anchors, _cal_high, _cal_low, iou_t)
 
-            # Extract kept predictions from calibration results
+            # Extract kept predictions
             kept = []
-            for r in cal_results:
-                if r["match_type"] == "TP" and r["pred"] is not None:
+            for r in filter_results:
+                if r["status"] == "keep" and r["pred"] is not None:
                     p = r["pred"].copy()
                     p["agg_score"] = p["score"]
                     p["cluster_size"] = 1
@@ -529,7 +529,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
             all_preds[case_id] = kept
 
             n_raw = len([p for p in preds if p["score"] >= dwbc_params["min_score"]])
-            cluster_info = ", ".join(f"s={p['score']:.3f}" for p in kept)
+            cluster_info = ", ".join(f"s={p['score']:.3f}(n=1)" for p in kept)
             print(f"  {case_id} ({fname}): {n_raw} raw -> {len(kept)} detections "
                   f"[{cluster_info}]")
 

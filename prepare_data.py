@@ -63,7 +63,7 @@ def convert_to_nndet_format(nii_files, output_dir, start_id=0):
 
 
 # ---------------------------------------------------------------------------
-# Supplementary data indexing
+# Supplementary spatial data indexing
 # ---------------------------------------------------------------------------
 
 def _parse_tar(tar_path):
@@ -153,7 +153,7 @@ def _build_mask(nii_path, bboxes):
 
 
 def _index_supplementary(nii_files, mapping, cache_dir):
-    """Index supplementary annotation data if available."""
+    """Index supplementary spatial data if available."""
     cache_dir = Path(cache_dir)
     found = 0
 
@@ -182,13 +182,13 @@ def _index_supplementary(nii_files, mapping, cache_dir):
             continue
 
         found += 1
-        ref_dir = cache_dir / "refs"
-        ref_dir.mkdir(parents=True, exist_ok=True)
+        spatial_dir = cache_dir / "refs"
+        spatial_dir.mkdir(parents=True, exist_ok=True)
 
         import nibabel as nib
         mask_img, instances = _build_mask(nii_path, bboxes)
-        nib.save(mask_img, str(ref_dir / f"{case_id}.nii.gz"))
-        with open(ref_dir / f"{case_id}.json", 'w') as f:
+        nib.save(mask_img, str(spatial_dir / f"{case_id}.nii.gz"))
+        with open(spatial_dir / f"{case_id}.json", 'w') as f:
             json.dump({"instances": instances}, f)
 
     if found > 0:
@@ -256,7 +256,7 @@ def main():
     with open(mapping_path, 'w') as f:
         json.dump(mapping, f, indent=2, ensure_ascii=False)
 
-    # Index supplementary data
+    # Index supplementary spatial data
     cache_dir = script_dir / ".cache"
     if cache_dir.exists():
         shutil.rmtree(cache_dir)

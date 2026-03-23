@@ -17,16 +17,36 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 CONFIG="$SCRIPT_DIR/config.json"
+
+# ---- Fix CUDA/library issues (common on HPC) ----
+if echo "$LD_LIBRARY_PATH" | grep -q "stubs"; then
+    export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed 's|[^:]*stubs[^:]*:||g; s|:[^:]*stubs[^:]*||g; s|^[^:]*stubs[^:]*$||g')
+fi
+_TORCH_LIB=$(python3 -c "import torch, os; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))" 2>/dev/null)
+if [ -n "$_TORCH_LIB" ] && [ -d "$_TORCH_LIB" ]; then
+    export LD_LIBRARY_PATH="$_TORCH_LIB:$LD_LIBRARY_PATH"
+fi
+if [ -z "$CUDA_HOME" ]; then
+    _NVCC_PATH=$(which nvcc 2>/dev/null)
+    if [ -n "$_NVCC_PATH" ]; then
+        export CUDA_HOME=$(dirname $(dirname "$_NVCC_PATH"))
+    fi
+fi
 
 # ---- Parse arguments ----
 SKIP_PREDICT=false
 PRED_DIR=""
 PREDICT_ARGS=""
 PP_ARGS=""
+DATA_PATH=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --data)
+            DATA_PATH="$2"
+            shift 2 ;;
         --skip_predict)
             SKIP_PREDICT=true
             shift ;;
@@ -36,6 +56,12 @@ while [[ $# -gt 0 ]]; do
         --no_preprocess)
             PREDICT_ARGS="$PREDICT_ARGS $1"
             shift ;;
+        --no_tta)
+            PREDICT_ARGS="$PREDICT_ARGS --no_tta"
+            shift ;;
+        --case_id)
+            PREDICT_ARGS="$PREDICT_ARGS --case_id $2"
+            shift 2 ;;
         --test_data)
             PREDICT_ARGS="$PREDICT_ARGS $1 $2"
             shift 2 ;;
@@ -47,6 +73,23 @@ while [[ $# -gt 0 ]]; do
             shift ;;
     esac
 done
+
+# ---- Auto-configure data path ----
+if [ -n "$DATA_PATH" ]; then
+    DATA_PATH="$(cd "$DATA_PATH" 2>/dev/null && pwd || echo "$DATA_PATH")"
+    echo "Configuring data path: $DATA_PATH"
+    python3 -c "
+import json
+cfg_path = '$CONFIG'
+with open(cfg_path) as f:
+    cfg = json.load(f)
+cfg['env']['det_data'] = '$DATA_PATH'
+with open(cfg_path, 'w') as f:
+    json.dump(cfg, f, indent=4)
+print('  config.json updated: det_data =', '$DATA_PATH')
+"
+    echo ""
+fi
 
 echo "============================================"
 echo "  Inference Pipeline"

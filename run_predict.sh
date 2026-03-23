@@ -18,7 +18,23 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 CONFIG="$SCRIPT_DIR/config.json"
+
+# ---- Fix CUDA/library issues (common on HPC) ----
+if echo "$LD_LIBRARY_PATH" | grep -q "stubs"; then
+    export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed 's|[^:]*stubs[^:]*:||g; s|:[^:]*stubs[^:]*||g; s|^[^:]*stubs[^:]*$||g')
+fi
+_TORCH_LIB=$(python3 -c "import torch, os; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))" 2>/dev/null)
+if [ -n "$_TORCH_LIB" ] && [ -d "$_TORCH_LIB" ]; then
+    export LD_LIBRARY_PATH="$_TORCH_LIB:$LD_LIBRARY_PATH"
+fi
+if [ -z "$CUDA_HOME" ]; then
+    _NVCC_PATH=$(which nvcc 2>/dev/null)
+    if [ -n "$_NVCC_PATH" ]; then
+        export CUDA_HOME=$(dirname $(dirname "$_NVCC_PATH"))
+    fi
+fi
 
 if [ ! -f "$CONFIG" ]; then
     echo "ERROR: config.json not found at $CONFIG"

@@ -51,15 +51,6 @@ export det_models="${det_models:-$(python3 -c "import json; c=json.load(open('$C
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export det_num_threads="${det_num_threads:-6}"
 
-echo "============================================"
-echo "  Model Inference"
-echo "============================================"
-echo "Task:       $TASK"
-echo "Model:      $MODEL"
-echo "Fold:       $FOLD"
-echo "det_data:   $det_data"
-echo "det_models: $det_models"
-echo ""
 
 # ---- Validate model directory ----
 TRAINING_DIR="$det_models/$TASK/$MODEL"
@@ -87,8 +78,6 @@ if [ -z "$FOLD_DIR" ] || [ ! -d "$FOLD_DIR" ]; then
     exit 1
 fi
 
-echo "Fold dir: $FOLD_DIR"
-
 # Check required files
 MISSING=0
 for f in config.yaml plan_inference.pkl; do
@@ -105,13 +94,5 @@ if [ "$MISSING" = "1" ]; then
     exit 1
 fi
 
-echo "Checkpoint(s): $CKPT_COUNT found"
-echo ""
-
 # ---- Run prediction ----
 python3 "$SCRIPT_DIR/predict.py" --config "$CONFIG" "$@"
-
-echo ""
-echo "============================================"
-echo "  Prediction Complete!"
-echo "============================================"

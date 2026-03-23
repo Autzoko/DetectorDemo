@@ -212,7 +212,7 @@ def prepare_single_case(nii_path, data_dir):
             with gzip.open(str(out_path), 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
 
-    print(f"  {nii_path.name} -> case_00000_0000.nii.gz")
+    pass  # silent
     return "case_00000"
 
 
@@ -244,10 +244,6 @@ def main():
     with open(args.config) as f:
         cfg = json.load(f)
 
-    print("=" * 60)
-    print("  Single-Case Inference")
-    print("=" * 60)
-
     # Setup environment
     from predict import setup_env, find_training_dir, check_files, run_inference
     setup_env(cfg)
@@ -272,7 +268,6 @@ def main():
             print(f"ERROR: Input file not found: {nii_path}")
             sys.exit(1)
 
-        print(f"  Input: {nii_path}")
         case_id = "case_00000"
 
         # Prepare data
@@ -280,7 +275,6 @@ def main():
         if tmp_data.exists():
             shutil.rmtree(tmp_data)
 
-        print("\n>>> Preparing input...")
         prepare_single_case(nii_path, tmp_data)
 
         # Index spatial data if available
@@ -301,7 +295,6 @@ def main():
             old_pkl.unlink()
 
         # Run inference (with preprocessing)
-        print("\n>>> Running inference...")
         run_inference(
             training_dir=training_dir,
             process=True,
@@ -318,7 +311,7 @@ def main():
     else:
         # ---- Mode 2: From preprocessed case_id ----
         case_id = args.case_id
-        print(f"  Case: {case_id}")
+        pass  # silent
 
         # Auto-index if not already cached
         if not (cache_dir / ".ready").exists():
@@ -331,7 +324,6 @@ def main():
             old_pkl.unlink()
 
         # Run inference (skip preprocessing)
-        print("\n>>> Running inference...")
         run_inference(
             training_dir=training_dir,
             process=False,
@@ -342,7 +334,6 @@ def main():
         )
 
     # Post-processing
-    print("\n>>> Post-processing...")
     output_dir = args.output_dir or str(script_dir / "results")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -359,9 +350,7 @@ def main():
 
     run_postprocess(str(pred_dir), output_dir, "", dwbc_params, iou_t=iou_t)
 
-    print(f"\n{'=' * 60}")
-    print(f"  Done! Results: {output_dir}/")
-    print(f"{'=' * 60}")
+    print(f"\nDone! Results -> {output_dir}/")
 
 
 if __name__ == "__main__":

@@ -91,43 +91,23 @@ print('  config.json updated: det_data =', '$DATA_PATH')
     echo ""
 fi
 
-echo "============================================"
-echo "  Inference Pipeline"
-echo "============================================"
-echo ""
-
 # ---- Step 1: Prediction ----
 if [ "$SKIP_PREDICT" = false ]; then
-    echo ">>> Step 1: Model Prediction"
-    echo "-------------------------------------------"
     python3 "$SCRIPT_DIR/predict.py" --config "$CONFIG" $PREDICT_ARGS
-    echo ""
 
     if [ -z "$PRED_DIR" ]; then
         PRED_DIR=$(python3 -c "import json; print(json.load(open('$CONFIG'))['paths']['predictions_dir'])")
-        # Resolve relative path
         [[ "$PRED_DIR" != /* ]] && PRED_DIR="$SCRIPT_DIR/$PRED_DIR"
     fi
 else
-    echo ">>> Step 1: SKIPPED (--skip_predict)"
     if [ -z "$PRED_DIR" ]; then
         PRED_DIR=$(python3 -c "import json; print(json.load(open('$CONFIG'))['paths']['predictions_dir'])")
         [[ "$PRED_DIR" != /* ]] && PRED_DIR="$SCRIPT_DIR/$PRED_DIR"
     fi
-    echo "  Using predictions from: $PRED_DIR"
-    echo ""
 fi
 
 # ---- Step 2: Post-processing ----
-echo ">>> Step 2: Post-Processing"
-echo "-------------------------------------------"
 python3 "$SCRIPT_DIR/postprocess.py" \
     --config "$CONFIG" \
     --pred_dir "$PRED_DIR" \
     $PP_ARGS
-
-echo ""
-echo "============================================"
-echo "  Pipeline Complete!"
-echo "  Results: $SCRIPT_DIR/results/"
-echo "============================================"

@@ -38,7 +38,6 @@ def setup_env(cfg):
         if key in ("det_data", "det_models") and not os.path.isabs(val):
             val = str(script_dir / val)
         os.environ[key] = val
-        print(f"  {key}={val}")
 
 
 def find_training_dir(cfg):
@@ -85,9 +84,6 @@ def check_files(training_dir):
             print(f"  python generate_plan_inference.py --plan {training_dir / 'plan.pkl'}")
         return False
 
-    print(f"  config.yaml: OK")
-    print(f"  plan_inference.pkl: OK")
-    print(f"  checkpoints: {len(ckpts)} found")
     return True
 
 
@@ -178,9 +174,6 @@ def run_inference(training_dir, process=True, num_models=None,
 
     # Step 2: Run prediction
     source_dir = preprocessed_output_dir / plan["data_identifier"] / "imagesTs"
-    print(f"\n>>> Running inference...")
-    print(f"  Source: {source_dir}")
-    print(f"  Output: {prediction_dir}")
 
     predict_dir(
         source_dir=source_dir,
@@ -195,11 +188,6 @@ def run_inference(training_dir, process=True, num_models=None,
         case_ids=case_ids,
         **resolved_cfg.get("inference_kwargs", {}),
     )
-
-    # Count output files
-    n_files = len(list(prediction_dir.glob("*_boxes.pkl")))
-    print(f"\n  Inference complete! {n_files} cases predicted.")
-    print(f"  Output: {prediction_dir}")
 
     return prediction_dir
 
@@ -230,12 +218,7 @@ def main():
     with open(args.config) as f:
         cfg = json.load(f)
 
-    print("=" * 60)
-    print("  3D ABUS Lesion Detection Inference")
-    print("=" * 60)
-
     # Setup environment
-    print("\nSetting environment variables:")
     setup_env(cfg)
 
     # Find training directory
@@ -243,8 +226,6 @@ def main():
         training_dir = Path(args.training_dir)
     else:
         training_dir = find_training_dir(cfg)
-
-    print(f"\nTraining dir: {training_dir}")
 
     # Validate
     if not check_files(training_dir):
@@ -270,10 +251,8 @@ def main():
         case_ids=case_ids,
     )
 
-    print(f"\n{'=' * 60}")
-    print(f"  Done! Predictions saved to: {pred_dir}")
-    print(f"  Next: python postprocess.py --pred_dir {pred_dir}")
-    print(f"{'=' * 60}")
+    n_files = len(list(pred_dir.glob("*_boxes.pkl")))
+    print(f"\nDone! {n_files} cases predicted -> {pred_dir}")
 
 
 if __name__ == "__main__":

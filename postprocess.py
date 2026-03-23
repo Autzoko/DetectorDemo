@@ -476,17 +476,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     """
     case_to_file = load_case_mapping(stats_csv)
 
-    print("=" * 70)
-    print("  Adaptive Detection Filtering")
-    print("=" * 70)
-    print(f"  Predictions:      {pred_dir}")
-    print(f"  Output:           {output_dir}")
-    print(f"  min_score:        {dwbc_params['min_score']}")
-    print(f"  density_radius:   {dwbc_params['density_radius']}")
-    print(f"  density_power:    {dwbc_params['density_power']}")
-    print(f"  cluster_iou:      {dwbc_params['cluster_iou']}")
-    print(f"  top_k:            {dwbc_params['top_k']}")
-    print("=" * 70)
+    pass  # config logged to file only
 
     # Check spatial anchor index
     _anchor_dir = _check_anchor_index()
@@ -502,7 +492,6 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     _cal_low = 0.25
 
     case_ids = load_case_ids_from_pred_dir(pred_dir)
-    print(f"\nProcessing {len(case_ids)} cases...")
 
     all_preds = {}
     case_summaries = {}
@@ -528,11 +517,6 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
                     kept.append(p)
             all_preds[case_id] = kept
 
-            n_raw = len([p for p in preds if p["score"] >= dwbc_params["min_score"]])
-            cluster_info = ", ".join(f"s={p['score']:.3f}(n=1)" for p in kept)
-            print(f"  {case_id} ({fname}): {n_raw} raw -> {len(kept)} detections "
-                  f"[{cluster_info}]")
-
             case_summaries[case_id] = {
                 "n_preds": len(kept),
                 "top_score": max((p["score"] for p in kept), default=0),
@@ -550,12 +534,6 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
             )
             all_preds[case_id] = filtered
 
-            n_raw = len([p for p in preds if p["score"] >= dwbc_params["min_score"]])
-            cluster_info = ", ".join(f"s={p['score']:.3f}(n={p['cluster_size']})"
-                                     for p in filtered)
-            print(f"  {case_id} ({fname}): {n_raw} raw -> {len(filtered)} detections "
-                  f"[{cluster_info}]")
-
             case_summaries[case_id] = {
                 "n_preds": len(filtered),
                 "top_score": max((p["score"] for p in filtered), default=0),
@@ -566,38 +544,17 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     total_preds = sum(s["n_preds"] for s in case_summaries.values())
     n_positive = sum(1 for s in case_summaries.values() if s["n_preds"] > 0)
 
-    print(f"\n{'=' * 70}")
-    print(f"  RESULTS")
-    print(f"{'=' * 70}")
-    print(f"  Cases:       {len(case_ids)}")
-    print(f"  Detections:  {total_preds}")
-    print(f"  Positive:    {n_positive}/{len(case_ids)} cases")
-
-    # BI-RADS summary
-    birads_cases = {cid: ps for cid, ps in all_preds.items()
-                    if ps and ps[0].get("birads_label") is not None}
-    if birads_cases:
-        print(f"\n  BI-RADS Classification:")
-        for cid in sorted(birads_cases.keys()):
-            ps = birads_cases[cid]
-            bn = ps[0].get("birads_name", "?")
-            bp = ps[0].get("birads_probs")
-            fname = case_to_file.get(cid, cid)
-            prob_str = ""
-            if bp is not None:
-                prob_str = f"  probs=[{float(bp[0]):.3f}, {float(bp[1]):.3f}, {float(bp[2]):.3f}]"
-            print(f"    {cid} ({fname}): {bn}{prob_str}")
-
-    print(f"{'=' * 70}")
-
     # Write outputs
     pred_csv_path = os.path.join(output_dir, "predictions.csv")
     _write_predictions_csv(all_preds, case_to_file, pred_csv_path)
-    print(f"\n  Predictions CSV: {pred_csv_path}")
 
     summary_csv_path = os.path.join(output_dir, "summary.csv")
     _write_summary_csv(case_summaries, case_to_file, summary_csv_path)
-    print(f"  Summary CSV:     {summary_csv_path}")
+
+    print(f"\nPost-processing: {len(case_ids)} cases, "
+          f"{total_preds} detections, "
+          f"{n_positive}/{len(case_ids)} positive")
+    print(f"Results -> {output_dir}/")
 
 
 # =====================================================================

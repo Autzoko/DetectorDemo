@@ -54,6 +54,14 @@ echo ""
 cd "$SCRIPT_DIR/nnDetection"
 pip install -e .
 
+# Patch: ensure NMS falls back to CPU if CUDA extension not available
+NMS_FILE="$SCRIPT_DIR/nnDetection/nndet/core/boxes/nms.py"
+if grep -q "if boxes.is_cuda:" "$NMS_FILE" 2>/dev/null; then
+    sed -i.bak 's/if boxes.is_cuda:/if boxes.is_cuda and nms_gpu is not None:/' "$NMS_FILE"
+    rm -f "${NMS_FILE}.bak"
+    echo "Applied NMS CPU fallback patch."
+fi
+
 # ---- Step 4: Install additional dependencies ----
 echo ""
 echo "Installing additional dependencies..."

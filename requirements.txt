@@ -4,3 +4,7 @@ nibabel
 loguru
 omegaconf
 hydra-core
+
+# Viewer dependencies
+PyQt5
+matplotlib

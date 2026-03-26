@@ -88,3 +88,30 @@ python postprocess.py
 | `run_single.sh` | Single-case inference (raw NIfTI or preprocessed) |
 | `predict.py` | Model inference only |
 | `postprocess.py` | Post-processing only |
+| `viewer.py` | 3D visualization viewer (PyQt5) |
+
+## Acknowledgements
+
+This project builds upon [nnDetection](https://github.com/MIC-DKFZ/nnDetection), a self-configuring framework for medical object detection developed by the Division of Medical Image Computing at the German Cancer Research Center (DKFZ). We gratefully acknowledge their work in providing the foundational detection architecture used in this inference pipeline.
+
+## Citation
+
+If you use this project, please cite the underlying nnDetection framework:
+
+```bibtex
+@inproceedings{Baumgartner2021nnDetection,
+    title     = {nnDetection: A Self-configuring Method for Medical Object Detection},
+    author    = {Baumgartner, Michael and J{\"a}ger, Paul F. and Isensee, Fabian and Maier-Hein, Klaus H.},
+    booktitle = {Medical Image Computing and Computer Assisted Intervention -- MICCAI 2021},
+    year      = {2021},
+    publisher = {Springer International Publishing},
+    pages     = {530--539},
+    doi       = {10.1007/978-3-030-87240-3_51},
+}
+```
+
+## License
+
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
+
+The included nnDetection components are subject to their own licenses; see [nnDetection/LICENSES/](nnDetection/LICENSES/) for details.

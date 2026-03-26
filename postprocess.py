@@ -274,7 +274,7 @@ DWBC_DEFAULTS = {
 
 
 def density_wbc_filter(preds, min_score=0.12, density_radius=45,
-                       density_power=0.1, cluster_iou=0.2, top_k=2):
+                       density_power=0.1, cluster_iou=0.2, top_k=0):
     """
     Density-Weighted Box Clustering (DWBC).
 

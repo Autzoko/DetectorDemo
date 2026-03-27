@@ -90,6 +90,10 @@ python postprocess.py
 | `postprocess.py` | Post-processing only |
 | `viewer.py` | 3D visualization viewer (PyQt5) |
 
+## Note on nnDetection
+
+This project depends on [nnDetection](https://github.com/MIC-DKFZ/nnDetection) for model architecture and inference. The nnDetection source code is **not** included in this repository — it is automatically cloned and installed during setup (`bash setup.sh`). For training, architecture details, or further customization, please refer to the [nnDetection repository](https://github.com/MIC-DKFZ/nnDetection).
+
 ## Acknowledgements
 
 This project builds upon [nnDetection](https://github.com/MIC-DKFZ/nnDetection), a self-configuring framework for medical object detection developed by the Division of Medical Image Computing at the German Cancer Research Center (DKFZ). We gratefully acknowledge their work in providing the foundational detection architecture used in this inference pipeline.
@@ -114,4 +118,4 @@ If you use this project, please cite the underlying nnDetection framework:
 
 This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
 
-The included nnDetection components are subject to their own licenses; see [nnDetection/LICENSES/](nnDetection/LICENSES/) for details.
+nnDetection is subject to its own licenses; see the [nnDetection repository](https://github.com/MIC-DKFZ/nnDetection) for details.

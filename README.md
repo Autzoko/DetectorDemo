@@ -1,6 +1,7 @@
-# 3D ABUS Lesion Detection Inference
+# 3D ABUS Lesion Detection & BI-RADS Classification
 
-3D breast ultrasound (ABUS) lesion detection inference pipeline.
+3D breast ultrasound (ABUS) lesion detection and BI-RADS classification inference pipeline.
+Detects lesions and classifies them as BI-RADS 2, 3, or 4.
 
 ## Setup
 
@@ -49,7 +50,7 @@ Data directory structure:
 
 ```
 /path/to/your/data/
-└── Task100_BreastABUS/
+└── Task101_BreastBIRADS/
     └── raw_splitted/
         └── imagesTs/
             ├── case_00000_0000.nii.gz
@@ -75,14 +76,14 @@ python postprocess.py
 
 ## Output
 
-- `results/predictions.csv`: filtered detections per case
-- `results/summary.csv`: per-case summary
+- `results/predictions.csv`: filtered detections per case (with BI-RADS class label)
+- `results/summary.csv`: per-case summary (detection count, classes, status)
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `setup.sh` | Environment setup (conda, PyTorch, nnDetection, model download) |
+| `setup.sh` | Environment setup (conda, PyTorch, detection framework, model download) |
 | `prepare_data.py` | Convert raw NIfTI files to standard format |
 | `run_pipeline.sh` | Full pipeline: predict + post-process (batch) |
 | `run_single.sh` | Single-case inference (raw NIfTI or preprocessed) |

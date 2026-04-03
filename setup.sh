@@ -91,7 +91,7 @@ echo "Installing additional dependencies..."
 pip install nibabel loguru omegaconf hydra-core gdown
 
 # ---- Step 5: Download model files ----
-MODEL_DIR="$SCRIPT_DIR/models/Task100_BreastABUS/RetinaUNetV001_D3V001_3d/fold0__0"
+MODEL_DIR="$SCRIPT_DIR/models/Task101_BreastBIRADS/RetinaUNetV001_D3V001_3d/fold0__0"
 if [ ! -f "$MODEL_DIR/model_best.ckpt" ]; then
     echo ""
     echo "Downloading model files..."

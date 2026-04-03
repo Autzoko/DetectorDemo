@@ -176,7 +176,7 @@ def _try_index_from_mapping(case_id, raw_data_dir, cache_dir):
     # Also search imagesTs under det_data
     for sd in search_dirs:
         for pattern in [
-            sd / "Task100_BreastABUS" / "raw_splitted" / "imagesTs",
+            sd / "Task101_BreastBIRADS" / "raw_splitted" / "imagesTs",
             sd,
         ]:
             if not pattern.exists():
@@ -200,7 +200,7 @@ def _try_index_from_mapping(case_id, raw_data_dir, cache_dir):
 def prepare_single_case(nii_path, data_dir):
     """Convert a single NIfTI file to the expected format."""
     nii_path = Path(nii_path)
-    images_dir = Path(data_dir) / "Task100_BreastABUS" / "raw_splitted" / "imagesTs"
+    images_dir = Path(data_dir) / "Task101_BreastBIRADS" / "raw_splitted" / "imagesTs"
     images_dir.mkdir(parents=True, exist_ok=True)
 
     out_path = images_dir / "case_00000_0000.nii.gz"

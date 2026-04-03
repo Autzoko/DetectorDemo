@@ -1,6 +1,6 @@
 {
     "predict": {
-        "task": "Task100_BreastABUS",
+        "task": "Task101_BreastBIRADS",
         "model": "RetinaUNetV001_D3V001_3d",
         "fold": 0,
         "_comment": "Model files at: models/<task>/<model>/fold0__0/{config.yaml, plan_inference.pkl, *.ckpt}"
@@ -17,12 +17,12 @@
         "_comment": "IoU threshold for detection matching/clustering"
     },
     "density_wbc": {
-        "min_score": 0.12,
+        "min_score": 0.10,
         "density_radius": 45,
         "density_power": 0.1,
         "cluster_iou": 0.2,
         "top_k": 0,
-        "_comment": "Adaptive Detection Filtering parameters. top_k=0 uses tiered adaptive selection (recommended)."
+        "_comment": "Adaptive Detection Filtering parameters. top_k=0 uses tiered adaptive selection."
     },
     "paths": {
         "predictions_dir": "test_predictions",

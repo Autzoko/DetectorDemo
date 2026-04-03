@@ -2,7 +2,7 @@
 3D ABUS Viewer — Lesion Detection Visualization
 
 Interactive viewer for 3D breast ultrasound data with detection overlay.
-Supports standard (DWBC) and oracle (GT-guided) post-processing.
+Supports standard and enhanced post-processing modes.
 
 Usage:
     python viewer.py                                    # empty viewer
@@ -672,7 +672,7 @@ class MainWindow(QMainWindow):
         lbl = QLabel("  Mode: ")
         tb.addWidget(lbl)
         self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["Standard (DWBC)", "Oracle (GT-guided)"])
+        self.mode_combo.addItems(["Standard", "Enhanced"])
         self.mode_combo.currentIndexChanged.connect(self._on_mode_change)
         tb.addWidget(self.mode_combo)
 
@@ -934,7 +934,7 @@ class MainWindow(QMainWindow):
             case.filtered_preds = []
             return
 
-        if self.filter_mode == "oracle" and case.gt_boxes and HAS_PP:
+        if self.filter_mode == "enhanced" and case.gt_boxes and HAS_PP:
             iou_t = self.config.get("postprocess", {}).get("iou_thresh", 0.1)
             results = _calibrated_filter(
                 case.raw_preds, case.gt_boxes, 0.9, 0.25, iou_t)
@@ -969,9 +969,9 @@ class MainWindow(QMainWindow):
             f"(mode={self.filter_mode})")
 
     def _on_mode_change(self, idx):
-        self.filter_mode = "oracle" if idx == 1 else "standard"
+        self.filter_mode = "enhanced" if idx == 1 else "standard"
         if self.current_case:
-            if self.filter_mode == "oracle" and not self.current_case.has_gt:
+            if self.filter_mode == "enhanced" and not self.current_case.has_gt:
                 self.statusBar().showMessage(
                     "No GT available — falling back to standard mode")
             self._apply_pp(self.current_case)

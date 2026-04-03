@@ -3,7 +3,8 @@ Adaptive Detection Filtering Post-Processing
 
 Applies Adaptive Detection Filtering (ADF) to raw model predictions:
   - Score filtering with density-weighted rescoring
-  - Spatial clustering via Weighted Box Clustering
+  - Class-agnostic spatial clustering via Weighted Box Clustering
+  - Score-weighted class voting per cluster
   - Tiered adaptive selection (or fixed top-K per case)
 
 Usage:
@@ -18,7 +19,7 @@ import csv
 import json
 import os
 import pickle
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 
 import numpy as np
@@ -50,6 +51,16 @@ def box_center(box):
 def center_dist_voxel(box1, box2):
     """Euclidean distance between box centers in voxel coordinates."""
     return float(np.linalg.norm(box_center(box1) - box_center(box2)))
+
+
+# =====================================================================
+# Class name mapping
+# =====================================================================
+CLASS_NAMES = {0: "BI-RADS 2", 1: "BI-RADS 3", 2: "BI-RADS 4"}
+
+
+def _class_name(label):
+    return CLASS_NAMES.get(int(label), f"class_{label}")
 
 
 # =====================================================================
@@ -94,9 +105,6 @@ def _load_spatial_anchors(anchor_dir):
     return anchors_by_case
 
 
-BIRADS_CLASS_NAMES = {0: "BI-RADS 2", 1: "BI-RADS 3", 2: "BI-RADS 4"}
-
-
 def load_predictions(pred_dir, case_id, score_thresh=0.0):
     """
     Load predictions from pkl file.
@@ -117,23 +125,15 @@ def load_predictions(pred_dir, case_id, score_thresh=0.0):
     scores = data["pred_scores"]
     labels = data.get("pred_labels", np.zeros(len(scores), dtype=int))
 
-    birads_probs = data.get("pred_birads_probs", None)
-    birads_label = data.get("pred_birads_label", None)
-
     preds = []
     for i in range(len(scores)):
         if scores[i] < score_thresh:
             continue
-        pred = {
+        preds.append({
             "box": [float(v) for v in boxes[i]],
             "score": float(scores[i]),
             "label": int(labels[i]),
-        }
-        if birads_probs is not None:
-            pred["birads_probs"] = birads_probs
-            pred["birads_label"] = int(birads_label)
-            pred["birads_name"] = BIRADS_CLASS_NAMES.get(int(birads_label), f"class_{birads_label}")
-        preds.append(pred)
+        })
 
     preds.sort(key=lambda p: p["score"], reverse=True)
     for idx, p in enumerate(preds):
@@ -262,10 +262,10 @@ def _calibrated_filter(preds, anchors, high_t, low_t, iou_thresh):
 
 
 # =====================================================================
-# Density-Weighted Box Clustering
+# Density-Weighted Box Clustering (class-agnostic + vote)
 # =====================================================================
 DWBC_DEFAULTS = {
-    "min_score": 0.12,
+    "min_score": 0.10,
     "density_radius": 45,
     "density_power": 0.1,
     "cluster_iou": 0.2,
@@ -273,38 +273,40 @@ DWBC_DEFAULTS = {
 }
 
 
-def density_wbc_filter(preds, min_score=0.12, density_radius=45,
+def density_wbc_filter(preds, min_score=0.10, density_radius=45,
                        density_power=0.1, cluster_iou=0.2, top_k=0):
     """
-    Density-Weighted Box Clustering (DWBC).
+    Density-Weighted Box Clustering (DWBC) with class voting.
 
     Steps:
       1. Filter by minimum score
       2. Density-weighted rescoring: score * (1 + n_neighbors)^power
-      3. Greedy WBC: cluster overlapping boxes, weighted-average position
-      4. Top-K clusters by aggregated density score
+      3. Class-agnostic greedy WBC: cluster overlapping boxes regardless
+         of class, weighted-average position
+      4. Score-weighted majority vote for cluster class label
+      5. Tiered adaptive selection (or fixed top-K per case)
+
+    Class-agnostic clustering avoids splitting the same lesion into
+    multiple weak clusters when different patches predict different
+    classes for the same location.
     """
     valid = []
     for p in preds:
         if p["score"] < min_score:
             continue
         box = np.array(p["box"])
-        entry = {
+        valid.append({
             "box": box,
             "score": p["score"],
             "center": box_center(list(box)),
             "instance": p.get("instance", -1),
             "label": p.get("label", 0),
-        }
-        if "birads_label" in p:
-            entry["birads_label"] = p["birads_label"]
-            entry["birads_probs"] = p["birads_probs"]
-            entry["birads_name"] = p["birads_name"]
-        valid.append(entry)
+        })
 
     if not valid:
         return []
 
+    # Density rescoring
     for p in valid:
         n_neighbors = 0
         for q in valid:
@@ -316,6 +318,7 @@ def density_wbc_filter(preds, min_score=0.12, density_radius=45,
 
     valid.sort(key=lambda x: x["density_score"], reverse=True)
 
+    # Class-agnostic greedy clustering
     clusters = []
     for p in valid:
         merged = False
@@ -339,13 +342,9 @@ def density_wbc_filter(preds, min_score=0.12, density_radius=45,
 
     clusters.sort(key=lambda x: x["agg_score"], reverse=True)
 
-    # Tiered adaptive selection: use agg_score thresholds per rank
-    # instead of fixed top_k. Clusters must exceed progressively higher
-    # thresholds to be kept, allowing multi-lesion cases to get more
-    # detections while filtering weak clusters in single-lesion cases.
+    # Tiered adaptive selection
     _tier_thresholds = [0.80, 0.93, 1.03]
     if top_k <= 0:
-        # Adaptive mode: use tiered thresholds
         kept = []
         for i, cl in enumerate(clusters):
             if i >= len(_tier_thresholds):
@@ -357,43 +356,42 @@ def density_wbc_filter(preds, min_score=0.12, density_radius=45,
     else:
         kept = clusters[:top_k]
 
+    # Score-weighted class voting for each cluster
     results = []
     for cl in kept:
+        # Aggregate class votes weighted by detection score
+        class_votes = defaultdict(float)
+        for m in cl["members"]:
+            class_votes[m["label"]] += m["score"]
+
+        voted_label = max(class_votes, key=class_votes.get)
+
         entry = {
             "box": [float(v) for v in cl["box"]],
             "score": cl["max_score"],
             "agg_score": cl["agg_score"],
             "cluster_size": len(cl["members"]),
             "density_score": cl["agg_score"],
-            "label": cl["members"][0]["label"],
+            "label": voted_label,
+            "class_name": _class_name(voted_label),
             "instance": cl["members"][0]["instance"],
         }
-        if "birads_label" in cl["members"][0]:
-            entry["birads_label"] = cl["members"][0]["birads_label"]
-            entry["birads_probs"] = cl["members"][0]["birads_probs"]
-            entry["birads_name"] = cl["members"][0]["birads_name"]
         results.append(entry)
 
     return results
 
 
 # =====================================================================
-# CSV Output (unified format)
+# CSV Output
 # =====================================================================
 def _write_predictions_csv(all_preds, case_to_file, output_path):
     """Write filtered predictions to CSV."""
-    has_birads = any(
-        p.get("birads_label") is not None
-        for preds in all_preds.values() for p in preds
-    )
-
     headers = [
         "Filename", "Case_ID",
         "Pred_Score", "Confidence", "Cluster_Size",
         "Pred_Z1", "Pred_Y1", "Pred_Z2", "Pred_Y2", "Pred_X1", "Pred_X2",
+        "Class_Label", "Class_Name",
     ]
-    if has_birads:
-        headers.extend(["BIRADS_Pred", "BIRADS_Prob_2", "BIRADS_Prob_3", "BIRADS_Prob_4"])
 
     with open(output_path, "w", newline="") as f:
         w = csv.writer(f)
@@ -409,13 +407,8 @@ def _write_predictions_csv(all_preds, case_to_file, output_path):
                     p.get("cluster_size", 1),
                 ]
                 row.extend([f'{v:.1f}' for v in p["box"]])
-                if has_birads and "birads_label" in p:
-                    row.append(p.get("birads_name", ""))
-                    bp = p.get("birads_probs")
-                    if bp is not None:
-                        row.extend([f'{float(bp[j]):.4f}' for j in range(min(3, len(bp)))])
-                    else:
-                        row.extend([""] * 3)
+                row.append(p.get("label", 0))
+                row.append(p.get("class_name", _class_name(p.get("label", 0))))
                 w.writerow(row)
 
 
@@ -423,7 +416,7 @@ def _write_summary_csv(case_summaries, case_to_file, output_path):
     """Write per-case summary CSV."""
     headers = [
         "Filename", "Case_ID", "Detections", "Top_Score",
-        "Cluster_Sizes", "Status",
+        "Cluster_Sizes", "Classes", "Status",
     ]
 
     with open(output_path, "w", newline="") as f:
@@ -434,17 +427,18 @@ def _write_summary_csv(case_summaries, case_to_file, output_path):
             filename = case_to_file.get(case_id, case_id)
             s = case_summaries[case_id]
             cluster_sizes = ",".join(str(c) for c in s.get("cluster_sizes", []))
+            classes = ",".join(s.get("class_names", []))
             status = "positive" if s["n_preds"] > 0 else "negative"
             top_score = f'{s["top_score"]:.4f}' if s["top_score"] > 0 else ""
             w.writerow([filename, case_id, s["n_preds"], top_score,
-                        cluster_sizes, status])
+                        cluster_sizes, classes, status])
 
         # Overall
         w.writerow([])
         total_det = sum(s["n_preds"] for s in case_summaries.values())
         n_pos = sum(1 for s in case_summaries.values() if s["n_preds"] > 0)
         w.writerow(["OVERALL", "", total_det, "",
-                    "", f"{n_pos}/{len(case_summaries)} positive"])
+                    "", "", f"{n_pos}/{len(case_summaries)} positive"])
 
 
 # =====================================================================
@@ -475,8 +469,6 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
     anchor refinement when indexed data is available.
     """
     case_to_file = load_case_mapping(stats_csv)
-
-    pass  # config logged to file only
 
     # Check spatial anchor index
     _anchor_dir = _check_anchor_index()
@@ -514,6 +506,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
                     p = r["pred"].copy()
                     p["agg_score"] = p["score"]
                     p["cluster_size"] = 1
+                    p["class_name"] = _class_name(p["label"])
                     kept.append(p)
             all_preds[case_id] = kept
 
@@ -521,9 +514,10 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
                 "n_preds": len(kept),
                 "top_score": max((p["score"] for p in kept), default=0),
                 "cluster_sizes": [1] * len(kept),
+                "class_names": [p["class_name"] for p in kept],
             }
         else:
-            # Standard density-weighted clustering
+            # Standard density-weighted clustering with class voting
             filtered = density_wbc_filter(
                 preds,
                 min_score=dwbc_params["min_score"],
@@ -538,6 +532,7 @@ def run_postprocess(pred_dir, output_dir, stats_csv, dwbc_params, iou_t=0.1):
                 "n_preds": len(filtered),
                 "top_score": max((p["score"] for p in filtered), default=0),
                 "cluster_sizes": [p["cluster_size"] for p in filtered],
+                "class_names": [p.get("class_name", "") for p in filtered],
             }
 
     # Overall stats

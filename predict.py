@@ -5,7 +5,7 @@ This script wraps the inference pipeline into a single entry point.
 It handles: environment setup → preprocessing → model loading → prediction.
 
 Requirements:
-  - Detection framework installed (pip install -e nnDetection/)
+  - Detection framework installed (pip install -e ./framework/)
   - Model files in training_dir: config.yaml, plan_inference.pkl, *.ckpt
   - Raw test data: imagesTs/case_XXXXX_0000.nii.gz
 

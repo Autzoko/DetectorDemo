@@ -43,7 +43,7 @@ pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 \
 echo ""
 if [ ! -d "$SCRIPT_DIR/nnDetection" ]; then
     echo "Cloning detection framework..."
-    git clone https://github.com/MIC-DKFZ/nnDetection.git "$SCRIPT_DIR/nnDetection"
+    git clone https://github.com/Autzoko/Detection.git "$SCRIPT_DIR/nnDetection"
 fi
 echo "Installing detection framework from local source..."
 echo ""
